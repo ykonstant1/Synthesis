@@ -1708,8 +1708,8 @@ bindkey -s "\`x" "•\|➢ "
 bindkey -s "\`dot" •
 bindkey -s "\`l" "λ "
 bindkey -s "\`m" " ↦ "
-bindkey -s "\`1" "'«»'ODOD"
-bindkey -s "\`2" "'⟦⟧'ODOD"
+bindkey -s "\`1" "'«»'ODOD
+bindkey -s "\`2" "'⟦⟧'ODOD
 bindkey -s "\`q" "⛥ "
 bindkey -s "\`r" "➭:"
 bindkey -s "\`t" "ψ"
