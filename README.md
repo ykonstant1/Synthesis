@@ -53,3 +53,16 @@ careful if you decide to use it.
 For more information, credits, caveats etc, check the documentation
 in `documentation.md`.  Both the script and the documentation are
 works in progress.
+
+## Installation
+
+Clone this repository locally and source the file `synthesis.zsh`.  Note
+that the file contains escape sequences for some of the keybindings
+in order to reposition the cursor; looking at the raw file from
+the browser, these sequences are stripped off.  If the keybindings
+`` `1 `` and `` `2 `` do not properly position the cursor in the
+center of the brackets, you need to supply these keystrokes at the
+bindkeys near the end of the file.
+
+The documentation has more information on the prerequisites and
+first steps into this environment.
