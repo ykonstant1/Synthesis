@@ -1219,8 +1219,14 @@ ffilter() {
 	local __buf_copy__=( "${(@)__buf__}" )
 
 	local fields
+	local nfields=("${(@ps:$word_delimiter:)__buf__[1]}")
+	nfields=${#nfields}
 	while [[ $1 =~ '\d+' ]]; do
-		fields+=( $1 )
+		if [[ $1 -gt 0 ]]; then
+			fields+=( $1 )
+		else
+			fields+=( $[$nfields +$1 + 1] )
+		fi
 		shift
 	done
 	local i
@@ -1234,7 +1240,6 @@ ffilter() {
 	if [[ $# -eq 2 && \
 		! $(declare -f $1) && \
 		(-n $__question__) ]]; then
-
 		__question__=${__question__//$1/__buf__[1]}
 		for entry in "${(@)__buf_copy__}"; do
 			local retstr=()
