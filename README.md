@@ -21,28 +21,19 @@ belonging to the user that were accessed within the last two days:
 ⛥ get_files '«./*.txt»' mine lastacc -2 \
 			⇝ map run x '«cp -- $x $x.bak»'
 ```
-Finally, let's say we want to list the PIDs of all `zsh` processes
-belonging to the current user except the login process `-zsh`, and
-we only remember `ps aux` (rather than the more reasonable options
-of `ps` that can readily give us what we want!).  Using this
-script, we would do
-```
-ps aux | ➢ map regex_replace '«\s+➭: »' \
-			⇝ filter fmatching 1 $(whoami) \
-			⇝ filter matching '«[^-]zsh»' \
-			⇝ keep 2 \
-			⇝ show
-```
-This code fixes the formatting of `ps` a little, then looks at the
-first whitespace-seperated field (holding the user name) and
-filters matching the user, then generically filters matching `zsh`
-but not `-zsh`, keeps the second field holding the PID and
-displays the result (or it can be then piped to `kill` or other
-utility for further processing).
 
 The unicode symbols have two-keystroke keymaps for ease of input,
 as well as suggested non-unicode replacements.  For instance, ⛥ is
 inputted by `` `q `` (backtick-q) and the pipe arrow ⇝ by `` `p ``.
+
+Below is a video demonstration of simple tasks worked with
+synthesis.  At the top I list each consecutive task; on the left
+the synthesis code is displayed, with the buffer contents modified
+live at the center, and the final output on the right.  At the
+bottom I display some optional global state like directory
+contents.
+
+![Synthesis demonstration video](synthesis_final.mp4)
 
 The script was created for my personal use, inspired by previous
 efforts to provide functional templates in the shell, and then
