@@ -487,9 +487,9 @@ rotate() {
 
 mix() {
 	local entries=()
-	while [[ $1 =~ '(-?\d):(\w+)' ]] do
+	while [[ $1 =~ '(-?\d+):(\w+)' ]] do
 		entries+=( $1 )
-		eval "local $match[2]=$__buf__[$match[1]]"
+		eval 'local $match[2]=$__buf__[$match[1]]'
 		shift
 	done
 
@@ -708,7 +708,7 @@ Fmix() {
 	local spl=( "${(@ps:$word_delimiter:)__buf__}" )
 	while [[ $1 =~ '(\d+):(\w+)' ]] do
 		fields+=( $1 )
-		eval "local $match[2]=$spl[$match[1]]"
+		eval 'local $match[2]=$spl[$match[1]]'
 		shift
 	done
 
@@ -1545,7 +1545,7 @@ fformats(){ #Component in get_files()
 	[[ $params =~ '(^|\s)(N|L|NL|LN)?dir' ]] && quals+='(#q'${fl[$match[2]]}'/)'
 	[[ $params =~ '(^|\s)(N|L|NL|LN)?full(?:dir)?' ]] && quals+='(#q'${fl[$match[2]]}'F)'
 	[[ $params =~ '(^|\s)(N|L|NL|LN)?reg(?:ular)?' ]] && quals+='(#q'${fl[$match[2]]}'.)'
-	[[ $params =~ '(^|\s)(N|L|NL|LN)?so(?:cket)?' ]] && quals+='(#q'${fl[$match[2]]}'=)'
+	[[ $params =~ '(^|\s)(N|L|NL|LN)?soc(?:ket)?' ]] && quals+='(#q'${fl[$match[2]]}'=)'
 	[[ $params =~ '(^|\s)(N|L|NL|LN)?fifo' ]] && quals+='(#q'${fl[$match[2]]}'p)'
 	[[ $params =~ '(^|\s)(N|L|NL|LN)?dev(?:ice)?' ]] && quals+='(#q'${fl[$match[2]]}'%)'
 	[[ $params =~ '(^|\s)(N|L|NL|LN)?link' ]] && quals+='(#q'${fl[$match[2]]}'@)'
