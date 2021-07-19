@@ -15,12 +15,15 @@ fizzes=77 # however many iterations we want
 			⇝ partmap 0 enter '«fizz buzz»' \
 			⇝ unify ⇝ ◎ 
 ```
+![Fizz gif](fizz.gif)
+
 The following code creates/updates backup files of text files
 belonging to the user that were accessed within the last two days:
 ```
 ⛥ get_files '«./*.txt»' mine lastacc -2 \
 			⇝ map run x '«cp -- $x $x.bak»'
 ```
+![Files gif](files.gif)
 
 The unicode symbols have two-keystroke keymaps for ease of input,
 as well as suggested non-unicode replacements.  For instance, ⛥ is
