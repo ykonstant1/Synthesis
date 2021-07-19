@@ -1671,6 +1671,7 @@ bindkey -s "\`q" "⛥ "
 bindkey -s "\`r" "➭:"
 bindkey -s "\`t" "ψ"
 bindkey -s "\`x" "χ"
+bindkey -s "\`" "\\\\ ⇝ "
 ### Note: These need to be changed if you change the symbols in the
 ### preamble!
 
