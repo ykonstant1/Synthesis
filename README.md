@@ -36,6 +36,8 @@ live at the center, and the final output on the right.  At the
 bottom I display some optional global state like directory
 contents.
 
+https://user-images.githubusercontent.com/45828433/126076357-79283c91-1473-4305-b487-3e2b330b2293.mp4
+
 The script was created for my personal use, inspired by previous
 efforts to provide functional templates in the shell, and then
 expanded into a more generic tool over the course of the last
