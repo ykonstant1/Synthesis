@@ -381,7 +381,7 @@ segment() {
 
 	local del
 
-	[[ $1 =~ '\d+' ]] &&
+	[[ $1 =~ '^(-?)\d+$' ]] &&
 		{ columns=$1; shift } ||
 		columns=$( best_fit $__buf_size__ )
 
@@ -558,7 +558,7 @@ Over() {
 	[[ $1 == 'all' ]] && 
 		{ fields=($( seq "${#${(@ps:$word_delimiter:)__buf__}}" )); shift }
 
-	while [[ $1 =~ '\d+' ]]; do
+	while [[ $1 =~ '^(-?)\d+$' ]]; do
 		fields+=( $1 )
 		shift
 	done
@@ -1118,7 +1118,7 @@ foldl() {
 
 induce() { # takes f : X -> X and induces
 	local i
-	[[ $1 =~ '^(\d)+$' ]] && { i=$1; shift } || i=1
+	[[ $1 =~ '^(-?)\d+$' ]] && { i=$1; shift } || i=1
 	local __exec_string__="$@"
 	local __buf_return__=()
 
@@ -1137,9 +1137,13 @@ induce() { # takes f : X -> X and induces
 
 fmap() {
 	local __buf_copy__=( "${(@)__buf__}" )
-	local fields
-	while [[ $1 =~ '^\d+$' ]]; do
-		fields+=( $1 )
+	local fields=()
+	local nfields=("${(@ps:$word_delimiter:)__buf__[1]}")
+	nfields=${#nfields}
+	while [[ $1 =~ '^(-?)\d+$' ]]; do
+	[[ $1 -gt 0 ]] &&
+		fields+=( $1 ) ||
+		fields+=( $[$nfields + $1 + 1] )
 		shift
 	done
 	local i
@@ -1171,11 +1175,11 @@ ffilter() {
 	local __buf_size__=${#__buf__}
 	local __buf_copy__=( "${(@)__buf__}" )
 
-	local fields
+	local fields=()
 	local nfields=("${(@ps:$word_delimiter:)__buf__[1]}")
 	nfields=${#nfields}
 
-	while [[ $1 =~ '\d+' ]]; do
+	while [[ $1 =~ '^(-?)\d+$' ]]; do
 		[[ $1 -gt 0 ]] &&
 			fields+=( $1 ) ||
 			fields+=( $[$nfields +$1 + 1] )
@@ -1330,7 +1334,7 @@ develop() { #Takes f : X x X -> Y and returns matrix of outputs
 
 unfold() { # takes f : X -> X x X and induces, interleaving in/out
 	local i
-	[[ $1 =~ '^(\d+)$' ]] && { i=$1; shift } || i=1
+	[[ $1 =~ '^(-?)\d+$' ]] && { i=$1; shift } || i=1
 	local __exec_string__="$@"
 	local __buf_return__=()
 
