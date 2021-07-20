@@ -197,11 +197,13 @@ count() {
 }
 
 fcount() { #Assumes rectangular table; record interpretation
-	__buf__="${#${(@ps:$word_delimiter:)__buf__[1]}}"
+	local spl=("${(@ps:$word_delimiter:)__buf__[1]}")
+	__buf__=${#spl}
 }
 
 partcount() { #Does not see nested partitions
-	__buf__="${#${(@M)__buf__:#$1:*}}"
+	local ag=("${(@M)__buf__:#$1:*}")
+	__buf__="${#ag}"
 }
 
 ## Buffer populating functions
@@ -242,6 +244,10 @@ unique() { __buf__=("${(@u)__buf__}") }
 
 duplicate() {	__buf__+=( "${(@)__buf__}" ) }
 
+denull() {
+	__buf__=($__buf__)
+}
+
 concat() { 
 	local sep=${(e)__literal__-$1}
 	__buf__=("$__buf__[1]$sep$__buf__[2]"); 
@@ -260,6 +266,21 @@ decode_all() {
 	for ((i=1; i <= ${#__buf__}; i++)); do
 		__buf__[i]="$( print -rn -- "$__buf__[i]" | base64 -d )"
 		__buf__[i]="${${__buf__[i]%.}#.}"
+	done
+}
+
+randomfill() {
+	local entries=${@[1]:-10} chars=${@[2]:-20}
+	repeat $entries do
+		__buf__+=($(tr -dc 'A-Za-z0-9!"#$%&'\''()*+,-./:;<=>?@[\]^_`{|}~'\
+			</dev/urandom | head -c 20; echo))
+	done
+}
+
+enumerate() {
+	local i
+	for ((i=1; i <= ${#__buf__}; i++)); do
+		__buf__[i]="$i"$word_delimiter"$__buf__[i]"
 	done
 }
 
@@ -706,7 +727,7 @@ Regex_freplace() { #record interpretation
 Fmix() {
 	local fields=()
 	local spl=( "${(@ps:$word_delimiter:)__buf__}" )
-	while [[ $1 =~ '(\d+):(\w+)' ]] do
+	while [[ $1 =~ '(-?\d+):(\w+)' ]] do
 		fields+=( $1 )
 		eval 'local $match[2]=$spl[$match[1]]'
 		shift
