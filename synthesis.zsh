@@ -59,6 +59,10 @@ input() {
 	eval "$1"'=("${(@)__buf__}")'
 }
 
+spl() {
+	eval "$1"'=("${(@ps:$word_delimiter:)'"$1"'}")'
+}
+
 ret() {
 	__buf__=("${(@P)@[1]-$1}")
 }
@@ -83,6 +87,13 @@ __debug() {
 	}
 }
 
+mock() {
+	local fun=$1
+	lex
+	x="${(q)x} ↦ $1"
+	rex
+}
+
 passthrough() {
 	local foo
 	input foo
@@ -92,7 +103,7 @@ passthrough() {
 ## Buffer Input / Output
 
 publish() {
-	eval "${1:-__BUF__}"'=("${(@)__buf__}")'
+	eval "${1:-__buf__}"'=("${(@)__buf__}")'
 	eval 'export '"$1"
 }
 
@@ -235,7 +246,7 @@ seql() {
 }
 
 enter() {
-		__buf__=( "${(e)__literal__-$@}" )
+		__buf__=( "${(@e)__literal__-$@}" )
 }
 
 ## Direct buffer modification
@@ -246,6 +257,13 @@ duplicate() {	__buf__+=( "${(@)__buf__}" ) }
 
 denull() {
 	__buf__=($__buf__)
+}
+
+vswap() {
+	local tmp=$__buf__[$1]
+	local smp=$__buf__[$2]
+	__buf__[$1]=$smp
+	__buf__[$2]=$tmp
 }
 
 concat() { 
@@ -273,7 +291,7 @@ randomfill() {
 	local entries=${@[1]:-10} chars=${@[2]:-20}
 	repeat $entries do
 		__buf__+=($(tr -dc 'A-Za-z0-9!"#$%&'\''()*+,-./:;<=>?@[\]^_`{|}~'\
-			</dev/urandom | head -c 20; echo))
+			</dev/urandom | head -c $chars; echo))
 	done
 }
 
@@ -531,10 +549,57 @@ mix() {
 
 pad() {
 	[[ $1 =~ 'x(\d+)' ]] &&
-		local sur=$[ ${#__buf__} % $match[1] ] ||
+		local sur=$[ $match[1] - ( ${#__buf__} % $match[1] ) ] ||
 		local sur=$1
-	 repeat $sur __buf__+="${__literal__-$2}"
+	repeat $sur __buf__+="${__literal__-$2}"
 }
+
+align() {
+	local fs=( "${(@ps:$word_delimiter:)__buf__[1]}" )
+	local nfs=$#fs
+	local del=$wh
+	local leeway=2
+	local maxsize
+	[[ $@ =~ 'gap:(\d+)' ]] && leeway=$match[1]
+	[[ $@ =~ 'max:(\d+)' ]] && maxsize=$match[1]
+	local sizes=()
+	local tmp=''
+	local saved=( "${(@)__buf__}" )
+	local cop=()
+	local i=1
+	for ((i=1; i <= $nfs; i++)); do
+		tmp=''
+		keep $i
+		cop=("${(@)__buf__}")
+		⛥ enter '«${(@)cop}»'\
+			⇝	expand '«$word_delimiter»'\
+			⇝	map x '«x=${#x}»' \
+			⇝ qsort num \
+			⇝ lshift -1 \
+			⇝ publish tmp
+		sizes[i]=$tmp
+		[[ $maxsize && ( $sizes[i] -gt $maxsize ) ]] && {
+			sizes[i]=$maxsize
+		}
+		__buf__=("${(@)saved}")
+	done
+	unset tmp
+	local j=1
+	local outarr=()
+	for ((j=1; j <= $nfs; j++)); do
+		sizes[j]=$[ $sizes[$j] + $leeway ]
+		__buf__=("${(@)saved}")
+		keep $j
+		for ((i=1; i <= $#__buf__; i++)); do
+			local jesus_christ_with_nested_brackets=${__buf__[i]}
+			[[ $maxsize && ( ${#jesus_christ_with_nested_brackets} -gt $maxsize ) ]] &&
+				__buf__[i]=${${__buf__[i]}[1,$maxsize-2]}".."
+			outarr[i]+="${(pr:$sizes[j]::$del:)__buf__[i]}"
+		done
+	done
+	__buf__=("${(@)outarr}")
+}
+
 ## Search and replace functions on buffer
 
 regex_replace() {
@@ -1490,6 +1555,21 @@ synth() {
 	local rep
 	local strr
 	local strm
+	for ((i=1; i <= __comand_count__; i++)); do
+		[[ $__comands__[i] =~ '⁇(\w+)' ]] && {
+			#__debug "Detected mock candidate: $match[1]"
+			[[ $( declare -f $match[1] ) ]] && {
+				local repstr=$__comands__[i]
+				regexp-replace repstr '⁇(\w+)' "$match[1]"
+				__comands__[i]="$repstr"
+			} || {
+			#	__debug "Candidate is unknown. Mocking $match[1]"
+				local repstr=$__comands__[i]
+				regexp-replace repstr '⁇(\w+)' 'mock '"$match[1]"
+				__comands__[i]="$repstr"
+			}
+		}
+	done
 
 	for ((i=1; i <= __comand_count__; i++)); do
 		if [[ $__comands__[$i] =~ 'loop (\d+)' ]]; then
@@ -1614,7 +1694,7 @@ fformats(){ #Component in get_files()
 	[[ $params =~ '(^|\s)(N|L|NL|LN)?dsort:lastacc' ]] && quals+='(#q'${fl[$match[2]]}'Oa)'
 	[[ $params =~ '(^|\s)(N|L|NL|LN)?dsort:lastmod' ]] && quals+='(#q'${fl[$match[2]]}'Om)'
 	[[ $params =~ '(^|\s)(N|L|NL|LN)?dsort:lastinode' ]] && quals+='(#q'${fl[$match[2]]}'Oc)'
-	[[ $params =~ '(^|\s)(\d+),(\d*)' ]] && quals+='(#q['$match[1]','${match[2]:-"-1"}'])'
+	[[ $params =~ '(?:^|\s)(\d+),(\d*)' ]] && quals+='(#q['$match[1]','${match[2]:-"-1"}'])'
 	[[ $params =~ '(^|\s)abs' ]] && quals+='(#q:a)'
 	[[ $params =~ '(^|\s)path' ]] && quals+='(#q:P)'
 	[[ $params =~ '(^|\s)linkabs' ]] && quals+='(#q:A)'
@@ -1684,7 +1764,7 @@ bindkey -s "\`,," \'«
 bindkey -s "\`.." »\'
 bindkey -s "\`p" " ⇝ "
 bindkey -s "\`w" " ➢ " 
-bindkey -s "\`\\" " |➢ " 
+bindkey -s "\`\\" " | ➢ " 
 bindkey -s "\`o" "◎ " 
 bindkey -s "\`x" "•\|➢ "
 bindkey -s "\`dot" •
@@ -1696,6 +1776,7 @@ bindkey -s "\`q" "⛥ "
 bindkey -s "\`r" "➭:"
 bindkey -s "\`t" "ψ"
 bindkey -s "\`x" "χ"
+bindkey -s "\`?" "⁇"
 bindkey -s "\`" " \\\\ ⇝ "
 ### Note: These need to be changed if you change the symbols in the
 ### preamble!
