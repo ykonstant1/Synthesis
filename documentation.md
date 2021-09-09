@@ -24,14 +24,11 @@
 
 ## 1.1. Overview
 
-Synthesis is a collection of zsh functions and patterns for
-creating user-defined functions designed to emulate a coding style
-based on functional composition.  Its main goal is to provide a
-more composable workflow compared to raw zsh code; it trades
-conciseness for ease of extending and adapting code.  At the same
-time, it leverages the ability of zsh to hold arbitrary data in its
-arrays safely and perform complicated data operations natively
-within its variables.
+Synthesis is a collection of zsh functions and primitives for
+enabling a map/filter/fold coding style.  It is meant to be used
+alongside pure zsh code, as "inner pipelines" performing buffered
+filtering and transformation tasks in a more composable and linear
+style than raw shell code.
 
 The workflow starts with the ```synth``` command taking arbitrary
 data from standard input or generating its own data, which it then
@@ -357,7 +354,7 @@ tasks.  A brief list follows; for the full details, see section
 1. Arithmetic functions `add`, `sub`, `dist`,...
 2. String manipulation functions `replace`,
 	 `regex_replace`, `extract`,...
-3. Buffer populating functions `seql`, `get_files`, `enter`,...
+3. Buffer populating functions `seql`, `detect`, `enter`,...
 4. Buffer modification functions `append/prepend`, `suffix/prefix`,
 	 `rotate/lshift/transpose/reverse/zip/unzip...`
 5. Sorting functions `qsort/msort`
@@ -769,7 +766,7 @@ function) respectively.
 
 ###
 ```
-get_files ['«glob»'] [inclusion criteria] 
+detect ['«glob»'] [inclusion criteria] 
 	N[exclusion criteria] [formatting options] 
 	: Void -> Array( Byte_not_null )
 ```
@@ -820,7 +817,7 @@ The formatting options are:
 
 **Example:**
 ```
-⛥ get_files dots regular mygroup read sort size Nmine path ⇝ ◎
+⛥ detect dots regular mygroup read sort size Nmine path ⇝ ◎
 ```
 returns size-sorted full paths of all regular files (including
 dotfiles ) that belong to the user's group but not the user and can
@@ -1142,13 +1139,18 @@ being according to zsh globbing patterns.
 
 ### `regex_replace string1 string2 : String -> String`
 
-**Variant:** `regex_replace '«string1➭:string2»' : String -> String`
+**Variant 1:** `regex_replace '«string1➭:string2»' : String -> String`
+**Variant 2:** `regex '⫽string1⫽string2⫽' : String -> String`
 
 **Description:** As `replace`, but the rules for replacement are
 according to PCRE, with the exception that matching groups are not
 denoted `\1,\2,...` but `$match[1],$match[2]...`.  The full matched
 string is `$MATCH`.  The function `regex_replace` is sugar over the
 zsh function `regexp-replace`.
+
+The second variant is a new addition that shortens the call and
+uses the more familiar glyph `⫽` for the replacement pattern.  This
+triple of glyphs is invoked via `` `/ ``.
 
 ## Modifications and replacement functions on records
 
@@ -1220,16 +1222,18 @@ string replacement.
 field `field` using PCRE-style regexes.  See `replace` and
 `regex_replace` for details on string replacement.
 
-### `Fmix field1:var1 field2:var2 ... f : String -> String`
+### `actF [+n] field1:var1 field2:var2 ... f : String -> String`
 
 **Description:** Accepts a sequence of field numbers and variables,
 puts the field values in the variables, executes f, a function of
 the variables, and returns the new variable values to their
-respective fields.
+respective fields.  Optionally, creates `n` new empty fields at the end
+of the input before assigning variable names to fields.  In that
+case, the new field count is used to assign the names.
 
 **Example:**
 ```
-⛥ seql 12 ⇝ segment ⇝ show ⇝ fmix 1:x 3:y '«y=$((x*y))»' ⇝ ◎ 
+⛥ seql 12 ⇝ segment ⇝ show ⇝ actf 1:x 3:y '«y=$((x*y))»' ⇝ ◎ 
 1 4 7 10
 2 5 8 11
 3 6 9 12
@@ -1266,7 +1270,7 @@ foo(){ print "$1->$(($1+$2))->$(($1+$2+$3))" } #non-synth function
 ⛥ enter 1 2 3 ⇝ λ x y z  ↦ '«foo $x $y $z»' ⇝ ◎ 
 1->3->6
 
-⛥ get_files regular read ⇝ map λ x ↦ '«cat -- $x»' 
+⛥ detect regular read ⇝ map λ x ↦ '«cat -- $x»' 
 # Cats all regular readable files in the folder of the invocation 
 ```
 
@@ -1293,10 +1297,10 @@ expression : variable=[other expression]
 ```
 ⛥ run x '«x=(*(D))»' ⇝ ◎	#Shows all files, including dot files
 
-⛥ get_files '«*.dat»' ⇝ map run x '«cp -n -- $x ${x%%dat}bak»'
+⛥ detect '«*.dat»' ⇝ map run x '«cp -n -- $x ${x%%dat}bak»'
 #creates bak files for dat files
 
-⛥ get_files '«*.dat»' \
+⛥ detect '«*.dat»' \
 	⇝ map run x '«x=${x%%dat}bak»' \
 	⇝ filter x '⟦ -f $x ⟧' \
 	⇝ prefix '«File already exists: »' \
@@ -1452,7 +1456,7 @@ then executed.  This is the same behavior as `run`.
 2
 
 mkdir back
-⛥ get_files '«*.dat»' ⇝ map x '«cp -n -- $x back/$x.bak»'
+⛥ detect '«*.dat»' ⇝ map x '«cp -n -- $x back/$x.bak»'
 # Backs up dat files to back subfolder with .bak extensions
 ```
 
@@ -1486,7 +1490,7 @@ undesired part.  Recall that the special brackets are invoked via
 # creates five filenames file(random number).dat, filters out already
 existing files, and creates the rest.
 
-⛥ get_files '«/*»' dir ⇝ filter out matching '«(home|run|media|v)»' ⇝ ◎
+⛥ detect '«/*»' dir ⇝ filter out matching '«(home|run|media|v)»' ⇝ ◎
 
 #Shows top level directories except home, run, media and any
 directory with v in its name
@@ -1763,7 +1767,7 @@ parameters the generation will break down.
 ```
 fibonacci() {
 ⛥ enter '«0 1»' \
-	⇝ power $1 Fmix -2:x -1:y '«y="$y $[x+y]"»' \
+	⇝ power $1 actF -2:x -1:y '«y="$y $[x+y]"»' \
 	⇝ expand ⇝ ◎ 
 } 
 ```
@@ -1774,19 +1778,19 @@ the last 2 days, as full paths, recursively over all subfolders of
 the current directory.
 
 ```
-⛥ get_files '«**/*»' regular mine lastmod -2 path ⇝ ◎	
+⛥ detect '«**/*»' regular mine lastmod -2 path ⇝ ◎	
 ```
 As another example, let's find all broken symlinks in the directory
 tree under the current directory.  The solution is a verbatim copy
 of the zsh solution:
 ```
-⛥ get_files '«**/*»' Llink ⇝ ◎ 
+⛥ detect '«**/*»' Llink ⇝ ◎ 
 ```
 the `L` modifier applies the subsequent criterion to the target of
 a symbolic link.  The criterion is that the file *is* a symbolic
 link, in which case the link is broken.  This is equivalent to 
 ```
-⛥ get_files '«**/*(-@)»' ⇝ ◎ 
+⛥ detect '«**/*(-@)»' ⇝ ◎ 
 ```
 
 ## 2.4. Performance and stability

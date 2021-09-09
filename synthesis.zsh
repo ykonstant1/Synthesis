@@ -8,6 +8,7 @@ setopt re_match_pcre
 
 zmodload zsh/mathfunc
 zmodload zsh/pcre
+zmodload zsh/mapfile
 autoload -U regexp-replace
 
 ## Unicode symbols in synth
@@ -26,15 +27,15 @@ export cr=$'\r'
 export wh=$' '
 export tb=$'\t'
 export null=$'\0'
-export input_delimiter=$'\n'
-export output_delimiter=$'\n'
-export word_delimiter=$wh
+export i_d=$'\n'
+export o_d=$'\n'
+export w_d=$tb
 
 ## For conciseness in user-created functions
 alias lex='local x; x=("${(@)__buf__}")'
 alias rex='__buf__=("${(@)x}")'
 
-alias ⛥='•|➢ '
+alias ⛥='<<(dot) ➢ '
 alias ◎='out'
 alias ➢='synth'
 alias reduce='foldl'
@@ -49,8 +50,9 @@ alias permute='map Permute'
 alias freplace='map Freplace'
 alias regex_freplace='map Regex_freplace'
 alias over='map Over'
-alias fmix='map Fmix'
-
+alias actf='map actF'
+alias ℜ='regex_replace'
+alias regex='regex_replace'
 # Synthesis main functions
 
 ## Building blocks for user-defined functions
@@ -60,7 +62,7 @@ input() {
 }
 
 spl() {
-	eval "$1"'=("${(@ps:$word_delimiter:)'"$1"'}")'
+	eval "$1"'=("${(@ps:$w_d:)'"$1"'}")'
 }
 
 ret() {
@@ -74,23 +76,24 @@ __debug() {
 	print -rn -- "$*" >&2
 	echo >&2
 	[[ $__exec_string__  && $* =~ '(E|e)val' ]] && {
-		print -n "\tEval string:"
-		print -r -- "'$__exec_string__'"
+		print -n "\tEval string:" >&2
+		print -r -- "'$__exec_string__'" >&2
 	}
 	[[ $__literal__ ]] && {
-		print -n "\tLiteral contents at token:"
-		print -r -- "'$__literal__'"
+		print -n "\tLiteral contents at token:" >&2
+		print -r -- "'$__literal__'" >&2
 	}
 	[[ $__question__ ]] && {
-		print -n "\tQuestion contents at token:"
-		print -r -- "'$__question__'"
+		print -n "\tQuestion contents at token:" >&2
+		print -r -- "'$__question__'" >&2
 	}
 }
 
 mock() {
 	local fun=$1
 	lex
-	x="${(q)x} ↦ $1"
+	#x="(⛥ enter '«$x»' ⇝ $1 ⇝ ◎ )"
+	x="($x)-$fun->"
 	rex
 }
 
@@ -100,15 +103,18 @@ passthrough() {
 	ret foo
 }
 
+witch () {
+	synth map regex_replace '«$__pipe__➭:$nl$tb$__pipe__»' ⇝ ◎ < <(which $@)
+}
+
 ## Buffer Input / Output
 
 publish() {
-	eval "${1:-__buf__}"'=("${(@)__buf__}")'
-	eval 'export '"$1"
+	eval 'typeset -g '"${@[1]:-__buf__}"'="${(pj:$i_d:)__buf__}"'
 }
 
 out() {
-	print -rn -- "${(pj:$output_delimiter:)__buf__[@]}""$output_delimiter"
+	print -rn -- "${(pj:$o_d:)__buf__[@]}""$o_d"
 }
 
 save() {
@@ -159,8 +165,8 @@ show() {
 		local i
 		local chunk
 		for ((i=1; i <= ${#seg}; i++)); do
-			chunk=( "${(@ps:$word_delimiter:)seg[i]}" )
-			cols+=( "${(pj:$word_delimiter:)chunk[l,r]}" )
+			chunk=( "${(@ps:$w_d:)seg[i]}" )
+			cols+=( "${(pj:$w_d:)chunk[l,r]}" )
 		done
 		ref="cols"
 	}
@@ -186,8 +192,8 @@ inspect() {
 		local i
 		local chunk
 		for ((i=1; i <= ${#seg}; i++)); do
-			chunk=(${(ps:$word_delimiter:)seg[i]})
-			cols+=( "${(pj:$word_delimiter:)chunk[l,r]}" )
+			chunk=(${(ps:$w_d:)seg[i]})
+			cols+=( "${(pj:$w_d:)chunk[l,r]}" )
 		done
 		ref="cols"
 	}
@@ -201,6 +207,33 @@ inspect() {
 	return 0
 }
 
+sflow() {
+	local sz=(${(@on)__buf__})
+	sz=$sz[-1]
+	sz=${#sz}
+	local csiz=$[$(tput cols)/(2*sz)]
+	local bf="${(pj:$w_d:)__buf__}"
+	
+⛥ enter '«$bf»' ⇝ expand \
+					⇝ map extract '«(-?\d*\.?\d+)➭:>($match[1])»' \
+					⇝ pad x$csiz '«─»' \
+					⇝ segment /$csiz \
+					⇝ transpose \
+					⇝ filter out omitting '«\d+»' \
+					⇝ align \
+					⇝ suffix ─┐ \
+					⇝ group 1,1 2,-1 \
+					⇝ partmap 1 prefix '«  »' \
+					⇝ partmap 2 prefix '«└─»' \
+					⇝ unify \
+					⇝ map x '«local c=$[${#x}-1]; local y=┌; y=${(pr:$c::─:)y}; y+=┘; x=${x}$nl$y»' \
+					⇝ map regex_replace '« ➭:─»' \
+					⇝ act 1:x '«x="├──"${x##──>}»' \
+					⇝ act -1:y '«y="${y%%┐*}┤"»' \
+					⇝ ◎
+return 0
+}
+
 ## Buffer counting functions
 
 count() {
@@ -208,7 +241,7 @@ count() {
 }
 
 fcount() { #Assumes rectangular table; record interpretation
-	local spl=("${(@ps:$word_delimiter:)__buf__[1]}")
+	local spl=("${(@ps:$w_d:)__buf__[1]}")
 	__buf__=${#spl}
 }
 
@@ -219,15 +252,15 @@ partcount() { #Does not see nested partitions
 
 ## Buffer populating functions
 
-get_files() {
-	setopt extended_glob
-	local quals=''
+detect() {
+	setopt local_options extended_glob
+	local quals='(#qN)'
 	local dir=${(e)__literal__:-'./*'}
 	local params="$*"
 
 	fformats	#See Component functions
 	dir+=$quals
-	__buf__=($~dir)
+	__buf__+=($~dir)
 }
 
 seql() {
@@ -253,10 +286,54 @@ enter() {
 
 unique() { __buf__=("${(@u)__buf__}") }
 
+elide() {
+	setopt local_options noglob
+	case $1 in
+		'l+') __buf__=("${(@p)__buf__##$~__literal__}") ;;
+		'r+') __buf__=("${(@p)__buf__%%$~__literal__}") ;;
+		'l-') __buf__=("${(@p)__buf__#$~__literal__}") ;;
+		'r-') __buf__=("${(@p)__buf__%$~__literal__}") ;;
+		*) __debug "Unknown elision directive."
+				return 1 ;;
+	esac
+}
+
+powerset() {
+	local del=${__literal__:-${@[1]:-$w_d}}
+	__buf__=( "${(@u)__buf__}" )
+	local ct=${#__buf__}
+	local i j
+	local P=$[2**$ct]
+	local po=()
+	local newen=''
+	local ct=${#__buf__}
+	po+=('')
+	for ((i=1; i < $P; i++)); do
+		newen=''
+		bins=${$(([#2]i))#2#}
+		bins=${(pl:$ct::0:)bins}
+		for ((j=1; j <= $ct; j++)); do
+			[[ $bins[j] -eq 1 ]] &&
+				newen+="$__buf__[j]""$del"
+		done
+		newen="${newen%$del}"
+		po+=("$newen")
+	done
+	__buf__=("${(@)po}")
+}
+
 duplicate() {	__buf__+=( "${(@)__buf__}" ) }
 
 denull() {
 	__buf__=($__buf__)
+}
+
+unbox() {
+	[[ -r $__buf__ ]] ||
+		{ __debug "Unbox failed to read ${(q)__buf__}."; return 1 }
+	__buf__="$mapfile[$__buf__]"
+	__buf__="${__buf__%${nl}}"
+	[[ $@ =~ 'e|a' ]] && __buf__=("${(@ps:$i_d:)__buf__}") || return 0
 }
 
 vswap() {
@@ -298,24 +375,24 @@ randomfill() {
 enumerate() {
 	local i
 	for ((i=1; i <= ${#__buf__}; i++)); do
-		__buf__[i]="$i"$word_delimiter"$__buf__[i]"
+		__buf__[$i]="$i"$w_d"$__buf__[$i]"
 	done
 }
 
 transpose() {
 	local rows=${#__buf__}
 	local entry
-	local row_size="${(@ws:$word_delimiter:)#__buf__[1]}"
+	local row_size="${(@ws:$w_d:)#__buf__[1]}"
 	local col_arr=()
 
 	for entry in "${(@)__buf__}"; do
-		[[ "${(@ws:$word_delimiter:)#entry}" -eq $row_size ]] ||
+		[[ "${(@ws:$w_d:)#entry}" -eq $row_size ]] ||
 			{ __debug "Not a rectangular table."; return 1 }
-		col_arr+=( "${(@ps:$word_delimiter:)entry}" )
+		col_arr+=( "${(@ps:$w_d:)entry}" )
 	done
 
 	__buf__=( "${(@)col_arr}" )
-	segment $rows $word_delimiter
+	segment $rows $w_d
 }
 
 zip() {
@@ -360,7 +437,7 @@ extract() {
 		}	
 	} || {
 		[[ $__buf__ =~ ${~__literal__} ]] && {
-			__buf__=("${(@pj:$word_delimiter:)MATCH}") 
+			__buf__=("${(@pj:$w_d:)MATCH}") 
 		} || {
 			__buf__=( "$non" )
 		}
@@ -368,12 +445,12 @@ extract() {
 }
 
 expand() {
-	local sep="${${(e)__literal__-$1}:-$word_delimiter}"
+	local sep="${${(e)__literal__-$1}:-$w_d}"
 	__buf__=( ${(@ps:$sep:)__buf__} )
 }
 
 contract() {
-	local sep="${${(e)__literal__-$1}:-$word_delimiter}"
+	local sep="${${(e)__literal__-$1}:-$w_d}"
 	__buf__=( "${(pj:$sep:)__buf__[@]}" )
 }
 
@@ -394,7 +471,7 @@ prefix() {
 }
 
 suffix() {
-	local sp="${(e)__literal__-$*}"
+	local sp="${${(e)__literal__-$*}:-$w_d}"
 	__buf__=(${^__buf__}"$sp") 
 }
 
@@ -420,11 +497,16 @@ segment() {
 
 	local del
 
-	[[ $1 =~ '^(-?)\d+$' ]] &&
+	[[ $1 =~ '^(/?)\d+$' ]] &&
 		{ columns=$1; shift } ||
 		columns=$( best_fit $__buf_size__ )
 
-	del=${(e)__literal__-${@[1]:-$word_delimiter}}
+	[[ $columns =~ '/' ]] && {
+		columns=${columns##/}
+		columns=$[__buf_size__ / columns]
+	}
+	
+del=${(e)__literal__-${@[1]:-$w_d}}
 
 	local i j
 	local __buf_return__=()
@@ -446,7 +528,7 @@ segment() {
 }
 
 unify() { #To aggregate a partitioned buffer
-	__buf__=( "${(@)__buf__/*:/}" )
+	__buf__=( "${(@)__buf__/[^:]:/}" )
 }
 
 partialsum() {
@@ -455,7 +537,7 @@ partialsum() {
 	
 	local sep
 
-	sep=${(e)__literal__-${@[1]:-$word_delimiter}}
+	sep=${(e)__literal__-${@[1]:-$w_d}}
 
 	local __buf_return__=()
 
@@ -524,8 +606,9 @@ rotate() {
 	fi
 }
 
-mix() {
+act() {
 	local entries=()
+	[[ $1 =~ '\+(\d+)' ]] && {	repeat $match[1] __buf__+=(""); shift }
 	while [[ $1 =~ '(-?\d+):(\w+)' ]] do
 		entries+=( $1 )
 		eval 'local $match[2]=$__buf__[$match[1]]'
@@ -538,7 +621,7 @@ mix() {
 	local __exec_string__="${__literal__:-$@}"
 
 	eval "$__exec_string__" || 
-		{ __debug "Error in mix eval."; return 1 }
+		{ __debug "Error in act eval."; return 1 }
 
 	while [[ $entries ]]; do
 		outent=( "${(@s.:.)entries[1]}" )
@@ -555,7 +638,7 @@ pad() {
 }
 
 align() {
-	local fs=( "${(@ps:$word_delimiter:)__buf__[1]}" )
+	local fs=( "${(@ps:$w_d:)__buf__[1]}" )
 	local nfs=$#fs
 	local del=$wh
 	local leeway=2
@@ -572,7 +655,7 @@ align() {
 		keep $i
 		cop=("${(@)__buf__}")
 		⛥ enter '«${(@)cop}»'\
-			⇝	expand '«$word_delimiter»'\
+			⇝	expand '«$w_d»'\
 			⇝	map x '«x=${#x}»' \
 			⇝ qsort num \
 			⇝ lshift -1 \
@@ -603,11 +686,12 @@ align() {
 ## Search and replace functions on buffer
 
 regex_replace() {
+	setopt local_options noglob
 	local strings=()
 	local cop
 	if [[ -n $__literal__ ]]; then
 			strings=(${(ps.$__rep__.)__literal__})
-			regexp-replace __buf__ "$strings[1]" "$strings[2]"
+			regexp-replace __buf__ "${(e)strings[1]}" "${strings[2]}"
 			return 0
 	else
 			regexp-replace __buf__ "$1" "$2"
@@ -642,18 +726,18 @@ Over() {
 	local fields=()
 	local retstr=()
 	[[ $1 == 'all' ]] && 
-		{ fields=($( seq "${#${(@ps:$word_delimiter:)__buf__}}" )); shift }
+		{ fields=($( seq "${#${(@ps:$w_d:)__buf__}}" )); shift }
 
 	while [[ $1 =~ '^(-?)\d+$' ]]; do
 		fields+=( $1 )
 		shift
 	done
 
-	[[ ! $(declare -f $1) ]] &&
+	[[ ! $(declare -f $1) && ! $(alias $1) ]] &&
 		local __exec_string__="${__literal__//$1/__buf__[1]}" ||
 		local __exec_string__="$@"
 
-	local spl=( "${(@ps:$word_delimiter:)__buf__}" )
+	local spl=( "${(@ps:$w_d:)__buf__}" )
 
 	local i
 	for i in $fields; do
@@ -663,16 +747,16 @@ Over() {
 		spl[i]="$__buf__"
 	done
 
-	__buf__=( "${(pj:$word_delimiter:)spl[@]}" )
+	__buf__=( "${(pj:$w_d:)spl[@]}" )
 }
 
 Swap() { #record interpretation
-	local spl=( "${(@ps:$word_delimiter:)__buf__}" )
-	local tmp=$spl[$1]
-	local smp=$spl[$2]
-	spl[$1]=$smp
-	spl[$2]=$tmp
-	__buf__=( "${(pj:$word_delimiter:)spl}" )
+	local spl=( "${(@ps:$w_d:)__buf__}" )
+	local tmp="$spl[$1]"
+	local smp="$spl[$2]"
+	spl[$1]="$smp"
+	spl[$2]="$tmp"
+	__buf__=( "${(pj:$w_d:)spl}" )
 }
 
 Keep() {	#record interpretation
@@ -681,7 +765,7 @@ Keep() {	#record interpretation
 	[[ $count -eq 0 ]] && {__buf__=(); return 0}
 
 	local kept=()
-	local spl=( "${(@ps:$word_delimiter:)__buf__}" )
+	local spl=( "${(@ps:$w_d:)__buf__}" )
 	local i
 
 	for i in {1..${#list}}; do 
@@ -692,7 +776,7 @@ Keep() {	#record interpretation
 		kept+=( "$spl[$list[i]]" )
 	done
 
-	local retstr="${(pj:$word_delimiter:)kept}"
+	local retstr="${(pj:$w_d:)kept}"
 	__buf__=( "$retstr" )
 }
 
@@ -701,7 +785,7 @@ Excise() {	#record interpretation
 	[[ ${#ex} -eq 0 ]] && return 0
 	
 	local kept=()
-	local spl=( "${(@ps:$word_delimiter:)__buf__}" )
+	local spl=( "${(@ps:$w_d:)__buf__}" )
 
 	local count=${#spl}
 	local i
@@ -717,14 +801,14 @@ Excise() {	#record interpretation
 		kept+=( "$spl[$i]" )
 	done
 
-	local retstr="${(@pj:$word_delimiter:)kept}"
+	local retstr="${(@pj:$w_d:)kept}"
 	__buf__=( "$retstr" )
 }
 
 Permute() {	#record interpretation
 	local ord=$#
 	local perm=($@)
-	local spl=( "${(@ps:$word_delimiter:)__buf__}" )
+	local spl=( "${(@ps:$w_d:)__buf__}" )
 
 	local in_ord=${#spl}
 
@@ -741,14 +825,14 @@ Permute() {	#record interpretation
 		temp_arr+=( "$spl[$perm[i]]" )
 	done
 
-	local retstr="${(@pj:$word_delimiter:)temp_arr}"
+	local retstr="${(@pj:$w_d:)temp_arr}"
 	__buf__=( "$retstr" )
 }
 
 Freplace() { #record interpretation
 	local strings=()
 	local cop
-	local spl=( "${(@ps:$word_delimiter:)__buf__}" )
+	local spl=( "${(@ps:$w_d:)__buf__}" )
 	local i=$1
 	if [[ -n $__literal__ ]]; then
 		cop="$__literal__"
@@ -766,14 +850,14 @@ Freplace() { #record interpretation
 			spl[$i]=(${spl[$i]/${~1}/$2})
 		fi
 	fi
-	local retstr="${(pj:$word_delimiter:)spl}"
+	local retstr="${(pj:$w_d:)spl}"
 	__buf__=( "$retstr" )
 }
 
 Regex_freplace() { #record interpretation
 	local strings=()
 	local cop
-	local spl=( "${(@ps:$word_delimiter:)__buf__}" )
+	local spl=( "${(@ps:$w_d:)__buf__}" )
 	local i=$1
 	shift
 	local tmpstr=$spl[i]
@@ -785,13 +869,14 @@ Regex_freplace() { #record interpretation
 		regexp-replace tmpstr $1 $2
 	fi
 	spl[i]="$tmpstr"
-	local retstr="${(pj:$word_delimiter:)spl}"
+	local retstr="${(pj:$w_d:)spl}"
 	__buf__=( "$retstr" )
 }
 
-Fmix() {
+actF() {
 	local fields=()
-	local spl=( "${(@ps:$word_delimiter:)__buf__}" )
+	local spl=( "${(@ps:$w_d:)__buf__}" )
+	[[ $1 =~ '\+(\d+)' ]] && {	repeat $match[1] spl+=(""); shift }
 	while [[ $1 =~ '(-?\d+):(\w+)' ]] do
 		fields+=( $1 )
 		eval 'local $match[2]=$spl[$match[1]]'
@@ -804,7 +889,7 @@ Fmix() {
 	local __exec_string__="${__literal__:-$@}"
 
 	eval "$__exec_string__" || 
-		{__debug "Error in field mix eval."; return 1}
+		{__debug "Error in field act eval."; return 1}
 
 	while [[ $fields ]]; do
 		outrec=( "${(@s.:.)fields[1]}" )
@@ -812,7 +897,7 @@ Fmix() {
 		shift fields
 	done
 
-	local retstr="${(pj:$word_delimiter:)spl}"
+	local retstr="${(pj:$w_d:)spl}"
 	__buf__=( "$retstr" )
 }
 
@@ -821,7 +906,7 @@ Fmix() {
 run() {
 	[[ -n $__literal__ ]] ||
 		{ __debug "Literal run string not set."; return 1 }
-	local __exec_string__="${__literal__//$1/__buf__[1]}"
+	local __exec_string__="${__literal__//$1/__buf__}"
 	eval "$__exec_string__" ||
 		{ __debug "Error in run eval."; return 1 }
 }
@@ -874,15 +959,15 @@ fsort() { # qsort for tables
 	[[ $@ =~ 'des' ]] && typ=${typ/o/O}
 	swap 1 $ind
 	for ((i=1; i <= ${#__buf__}; i++)); do
-		if [[ $word_delimiter == ':' ]]; then
-			eval 'insort+=(${__buf__[i][(ws.'$word_delimiter'.)1]})'
+		if [[ $w_d == ':' ]]; then
+			eval 'insort+=(${__buf__[i][(ws.'$w_d'.)1]})'
 		else
-			eval 'insort+=(${__buf__[i][(ws:'$word_delimiter':)1]})'
+			eval 'insort+=(${__buf__[i][(ws:'$w_d':)1]})'
 		fi
 	done
 	eval 'insort=( "${(@'$typ')insort}" )'
 	for ((i=1; i <= ${#__buf__}; i++)); do
-		local inner=${__buf__[(i)$insort[i]$word_delimiter*]}
+		local inner=${__buf__[(i)$insort[i]$w_d*]}
 		sortout+=( "${__buf__[inner]}" )
 		__buf__[inner]=''
 	done
@@ -979,7 +1064,7 @@ fmatching() {
 	local val=true #empty match is vacuously true
 
 	lex
-	x=( "${(@ps:$word_delimiter:)x}" )
+	x=( "${(@ps:$w_d:)x}" )
 	local i; local j
 	local list=($@)
 
@@ -1011,7 +1096,7 @@ fomitting() {
 		#empty omission is vacuously false
 
 	lex
-	x=( "${(@ps:$word_delimiter:)x}" )
+	x=( "${(@ps:$w_d:)x}" )
 	local i; local j
 	local list=($@)
 
@@ -1044,6 +1129,11 @@ scomp() {
 
 ncomp() {
 	[[ $__buf__[1] -le $__buf__[2] ]] &&
+		__buf__="true" || __buf__="false"
+}
+
+Ancomp() {
+	[[ $[abs(__buf__[1])] -ge $[abs(__buf__[2])] ]] &&
 		__buf__="true" || __buf__="false"
 }
 
@@ -1103,6 +1193,27 @@ scale() {__buf__=($[$1*__buf__])}
 
 sroot() {__buf__=($[ sqrt(__buf__) ])}
 
+ipow() { 
+	local ac="$__buf__"
+	[[ $1 -gt 0 ]] && {
+		repeat $[$1-1] __buf__=($[__buf__*ac]) } || {
+		__buf__=$[1.0/__buf__]
+		repeat $[abs($1)-1] __buf__=($[__buf__*(1.0/ac)])
+	}
+}
+
+pow() { 
+	__buf__=($[ ($1)*log(__buf__) ])
+	__buf__=($[exp(__buf__)])
+}
+
+nroot() {
+	__buf__=($[ (1.0/$1)*log(__buf__) ])
+	__buf__=($[exp(__buf__)])
+}
+
+## Array arithmetic functions
+
 sum() {
 	foldl add
 }
@@ -1129,6 +1240,60 @@ prod(){
 	foldl mul
 }
 
+mean() {
+	local N=${#__buf__}
+ local S
+	local i
+	case $1 in
+		A) 
+		S=0
+			 #for ((i=1; i<=$N; i++)); do
+			 #	 S=$[S+__buf__[i]]
+			 #done
+			 S=$(__Neumeier_sum __buf__)
+			 S=$[S/(N*1.0)]
+			;;
+		G) S=0
+			 local tbuf=()
+			 for ((i=1; i<=$N; i++)); do
+				 tbuf+=($[log(__buf__[i])])
+			 done
+			 S=$(__Kahan_sum tbuf)
+			 S=$[(1.0/N)*S]
+			 S=$[exp(S)]
+			;;
+		H) S=0
+			 local tbuf=()
+			 for ((i=1; i<=$N; i++)); do
+				 tbuf+=($[1.0/__buf__[i]])
+			 done
+			 S=$(__Kahan_sum tbuf)
+			 S=$[1.0/S]
+			 S=$[N*S]
+			;;
+		F) local __buf_copy__=($__buf__)
+			 local tbuf=()
+			 local pair=("${(@ps:,:)__literal__}")
+			 S=0
+			 for ((i=1; i<=$N; i++)); do
+				 __buf__=($__buf_copy__[i])
+					eval "$pair[1]" ||
+						{ __debug "Error during mean eval."; return 1 }
+						tbuf+=($__buf__)
+			 done
+			 S=$(__Kahan_sum tbuf)
+			 __buf__=($[(1.0/N)*S])
+		 	 eval "$pair[2]" ||
+		 	 	 { __debug "Error during mean eval."; return 1 }
+			 S="$__buf__"
+			__buf__=($S)
+			;;
+		*) 	__debug "Unknown mean."
+				return 1 ;;
+	esac
+	__buf__=($S)
+}
+
 ## Main higher order functions
 
 map() {
@@ -1138,6 +1303,7 @@ map() {
 
 	[[ $# -eq 2 &&
 		! $(declare -f $1) &&
+		! $(alias $1) &&
 		$__literal__ ]] &&
 			__exec_string__=${__literal__//$1/__buf__[1]}
 
@@ -1147,7 +1313,7 @@ map() {
 	for entry in "${(@)__buf_copy__}"; do
 		__buf__=( "$entry" )
 		eval "$__exec_string__" || {__debug "Error in map eval."; return 1}
-		__buf_return__+=( "$__buf__" )
+		__buf_return__+=( "${(@)__buf__}" )
 	done
 	__buf__=( "${(@)__buf_return__}" )
 }
@@ -1162,6 +1328,7 @@ filter() {
 	local __buf_return__=()
 
 	if [[ $# -eq 2 &&
+		! $(alias $1) &&
 		! $(declare -f $1) &&
 		$__question__ ]]; then
 
@@ -1209,6 +1376,7 @@ induce() { # takes f : X -> X and induces
 	local __buf_return__=()
 
 	if [[ $# -eq 2 &&
+		! $(alias $1) &&
 		! $(declare -f $1) &&
 		(-n $__literal__) ]]; then
 			__exec_string__=${__literal__//$1/__buf__[1]}
@@ -1224,7 +1392,7 @@ induce() { # takes f : X -> X and induces
 fmap() {
 	local __buf_copy__=( "${(@)__buf__}" )
 	local fields=()
-	local nfields=("${(@ps:$word_delimiter:)__buf__[1]}")
+	local nfields=("${(@ps:$w_d:)__buf__[1]}")
 	nfields=${#nfields}
 	while [[ $1 =~ '^(-?)\d+$' ]]; do
 	[[ $1 -gt 0 ]] &&
@@ -1236,6 +1404,7 @@ fmap() {
 	local __exec_string__="$@"
 	
 	if [[ $# -eq 2 &&
+		! $(alias $1) &&
 		! $(declare -f $1) &&
 		(-n $__literal__) ]]; then
 			__exec_string__=${__literal__//$1/__buf__[1]}
@@ -1246,13 +1415,13 @@ fmap() {
 	local __buf_return__=()
 
 	for entry in "${(@)__buf_copy__}"; do
-		spl=( "${(@ps:$word_delimiter:)entry}" )
+		spl=( "${(@ps:$w_d:)entry}" )
 			for i in $fields; do
 				__buf__=( "$spl[i]" )
 				eval "$__exec_string__" || { __debug  "Error in field map eval."; return 1 }
-				spl[i]="$__buf__"
+				spl[i]="$__buf__[@]"
 			done
-			__buf_return__+=("${(pj:$word_delimiter:)spl[@]}")
+			__buf_return__+=("${(pj:$w_d:)spl[@]}")
 	done
 	__buf__=( "${(@)__buf_return__}" )
 }
@@ -1262,7 +1431,7 @@ ffilter() {
 	local __buf_copy__=( "${(@)__buf__}" )
 
 	local fields=()
-	local nfields=("${(@ps:$word_delimiter:)__buf__[1]}")
+	local nfields=("${(@ps:$w_d:)__buf__[1]}")
 	nfields=${#nfields}
 
 	while [[ $1 =~ '^(-?)\d+$' ]]; do
@@ -1281,6 +1450,7 @@ ffilter() {
 	local __buf_return__=()
 
 	if [[ $# -eq 2 &&
+		! $(alias $1) &&
 		! $(declare -f $1) &&
 		$__question__ ]]; then
 
@@ -1288,7 +1458,7 @@ ffilter() {
 		for entry in "${(@)__buf_copy__}"; do
 			local retstr=()
 			local accept=1
-			spl=( "${(@ps:$word_delimiter:)entry}" )
+			spl=( "${(@ps:$w_d:)entry}" )
 			for ((i=1; i <= ${#spl}; i++)); do
 				if [[ $fields[(r)$i] ]]; then 
 					__buf__=( "$spl[i]" )
@@ -1299,7 +1469,7 @@ ffilter() {
 				fi
 			done
 			[[ $accept = 1 ]] &&
-				__buf_return__+=( "${(@pj:$word_delimiter:)retstr[@]}" )
+				__buf_return__+=( "${(@pj:$w_d:)retstr[@]}" )
 		done
 		__buf__=( "${(@)__buf_return__}" )
 
@@ -1307,7 +1477,7 @@ ffilter() {
 		for entry in "${(@)__buf_copy__}"; do
 			local retstr=()
 			local accept=1
-			spl=( "${(@ps:$word_delimiter:)entry}" )
+			spl=( "${(@ps:$w_d:)entry}" )
 			for ((i=1; i <= ${#spl}; i++)); do
 				if [[ -n $fields[(r)$i] ]]; then 
 					__buf__=($spl[i])
@@ -1319,7 +1489,7 @@ ffilter() {
 				fi
 			done
 			[[ $accept = 1 ]] &&
-				__buf_return__+=( "${(@pj:$word_delimiter:)retstr[@]}" )
+				__buf_return__+=( "${(@pj:$w_d:)retstr[@]}" )
 		done
 		__buf__=( "${(@)__buf_return__}" )
 	fi
@@ -1331,6 +1501,7 @@ partition() {
 	local __buf_copy__=( "${(@)__buf__}" )
 
 	[[ $# -eq 2 &&
+		! $(alias $1) &&
 		! $(declare -f $1) &&
 		$__literal__ ]] &&
 		__exec_string__=${__literal__//$1/__buf__[1]}
@@ -1354,6 +1525,7 @@ partmap() {
 	local __exec_string__="$@"
 
 	[[ $# -eq 2 &&
+		! $(alias $1) &&
 		! $(declare -f $1) &&
 		$__literal__ ]] &&
 			__exec_string__=${__literal__//$1/__buf__[1]}
@@ -1398,6 +1570,7 @@ develop() { #Takes f : X x X -> Y and returns matrix of outputs
 	local __buf_copy__=( "${(@)__buf__}" )
 
 	[[ $# -eq 2 &&
+		! $(alias $1) &&
 		! $(declare -f $1) &&
 		$__literal__ ]] &&
 			__exec_string__=${__literal__//$1/__buf__}
@@ -1410,9 +1583,9 @@ develop() { #Takes f : X x X -> Y and returns matrix of outputs
 		for yentry in "${(@)__buf_copy__}"; do
 			__buf__=( "$xentry" "$yentry" )
 			eval "$__exec_string__" || {__debug "Error in develop eval."; return 1}
-			entry_return+="$__buf__[@]""$word_delimiter"
+			entry_return+="$__buf__[@]""$w_d"
 		done
-		entry_return="${entry_return%%$word_delimiter}"
+		entry_return="${entry_return%%$w_d}"
 		__buf_return__+=( "$entry_return" )
 	done
 	__buf__=( "${(@)__buf_return__}" )
@@ -1425,6 +1598,7 @@ unfold() { # takes f : X -> X x X and induces, interleaving in/out
 	local __buf_return__=()
 
 	[[ $# -eq 2 &&
+		! $(alias $1) &&
 		! $(declare -f $1) &&
 		$__literal__ ]] &&
 			__exec_string__=${__literal__//$1/__buf__[1]}
@@ -1446,6 +1620,7 @@ graphmap() {
 	local __buf_copy__=( "${(@)__buf__}" )
 
 	[[ $# -eq 2 &&
+		! $(alias $1) &&
 		! $(declare -f $1) &&
 		$__literal__ ]] &&
 			__exec_string__=${__literal__//$1/__buf__}
@@ -1526,7 +1701,8 @@ Prepend() {
 		load ${(P)ref}
 			__buf__=( "${(@)__buf__}" "${(@)buf}" )
 	} || {
-		${(ezP)ref} 2>/dev/null || __buf__=("${(@P)ref}")
+		#${(ezP)ref} 2>/dev/null || __buf__=("${(@aP)ref}") # too risky
+		__buf__=("${(@ezP)ref}")
 		__buf__=( "${(@)__buf__}" "${(@)buf}" )
 	}
 }
@@ -1539,7 +1715,8 @@ Append() {
 		load ${(P)ref}
 		__buf__=( "${(@)buf}" "${(@)__buf__}" )
 	} || {
-		${(ezP)ref} 2>/dev/null || __buf__=("${(@P)ref}")
+		#${(ezP)ref} 2>/dev/null || __buf__=("${(@ezP)ref}") $too risky
+		__buf__=("${(@ezP)ref}")
 		__buf__=( "${(@)buf}" "${(@)__buf__}" )
 	}
 }
@@ -1587,7 +1764,7 @@ synth() {
 	local __buf__=()
 	local bin=''
 
-	while IFS= read -r -d $input_delimiter bin; do
+	while IFS= read -r -d $i_d bin; do
 		__buf__+=($bin)
 	done
 
@@ -1611,6 +1788,13 @@ synth() {
  			__exec_string__="${__exec_string__/$__llit__*$__rlit__/__token__}" 
 		}
 
+		[[ $__exec_string__ =~ '⫽' ]] && {
+			__literal__="${__exec_string__#*⫽}"
+			__literal__="${__literal__%⫽*}"
+			__literal__="${__literal__/⫽/$__rep__}"
+ 			__exec_string__="${__exec_string__/⫽*⫽/__token__}" 
+		}
+
 		[[ $__exec_string__ =~ $__lque__ ]] && {
 			__question__="${__exec_string__##*$__lque__}"
 			__question__="${__question__%%$__rque__*}"
@@ -1628,7 +1812,7 @@ synth() {
 
 ## Component functions
 
-dot() { printf $input_delimiter } # For piping empty state to synth
+dot() { printf $i_d } # For piping empty state to synth
 
 best_fit() { # Component in segment
 	local X=$1
@@ -1641,7 +1825,7 @@ best_fit() { # Component in segment
 	print $[ X / low_divisors[-1] ]
 }
 
-fformats(){ #Component in get_files()
+fformats(){ #Component in detect()
 	typeset -A fl
 	fl[N]='^'
 	fl[L]='-'
@@ -1732,6 +1916,51 @@ smallsort() { # Component in msort, use with smol arrays
 	__buf__=( "${(@)sor}" )
 }
 
+__Kahan_sum() {
+	local __buf__=("${(@ps: :P)@}")
+	local sz=${#__buf__}
+	msort Ancomp
+	local i
+	local c=0
+	local part=0
+	local tmp
+	local sm=0
+
+	for ((i=1; i <= $sz; i++)); do
+		tmp=$[ __buf__[i] - c ]
+		part=$[ sm + tmp ]
+		c=$[ part - sm ]
+		c=$[ c - tmp ]
+		sm=$part
+	done
+	print "$sm"
+}
+
+__Neumeier_sum() {
+	local __buf__=("${(@ps: :P)@}")
+	local sz=${#__buf__}
+	local i
+	local c=0
+	local part=0
+	local tmp
+	local sm=0
+
+	for ((i=1; i <= $sz; i++)); do
+		tmp=$[ sm + __buf__[i] ]
+		[[ $[abs(sm)] -ge $[abs(__buf__[i])] ]] && 
+			c=$[ c + (sm - tmp) + __buf__[i] ] ||
+			c=$[ c + (__buf__[i] - tmp) + sm ]
+		sm=$tmp
+	done
+	[[ $c -ne 0 ]] && print "Neumeier compensation: $c" >&2
+	sm=$[sm+c]
+	print "$sm"
+}
+
+prod(){
+	foldl mul
+}
+
 ## Emit function; try not to use this
 
 emit() {
@@ -1741,10 +1970,10 @@ emit() {
 	entry="$__buf__[$i]"
 	local j=0
 	shift
-	[[ ! $(declare -f $1) ]] && {
+	[[ ! $(declare -f $1) && ! $(alias $1) ]] && {
 		j=$1
 		shift
-		entry=( "${(@ps:$word_delimiter:)entry}" )
+		entry=( "${(@ps:$w_d:)entry}" )
 		entry="$entry[$j]"
 	}
 	__exec_string__="$@"
@@ -1777,7 +2006,9 @@ bindkey -s "\`r" "➭:"
 bindkey -s "\`t" "ψ"
 bindkey -s "\`x" "χ"
 bindkey -s "\`?" "⁇"
+bindkey -s "\`g" "ℜ"
 bindkey -s "\`" " \\\\ ⇝ "
+bindkey -s "\`/" "'⫽⫽⫽'ODODOD"
 ### Note: These need to be changed if you change the symbols in the
 ### preamble!
 

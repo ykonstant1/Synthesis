@@ -20,23 +20,12 @@ fizzes=77 # however many iterations we want
 The following code creates/updates backup files of text files
 belonging to the user that were accessed within the last two days:
 ```
-⛥ get_files '«./*.txt»' mine lastacc -2 \
+⛥ detect '«./*.txt»' mine lastacc -2 \
 			⇝ map run x '«cp -- $x $x.bak»'
 ```
-![Files gif](files.gif)
-
 The unicode symbols have two-keystroke keymaps for ease of input,
 as well as suggested non-unicode replacements.  For instance, ⛥ is
 inputted by `` `q `` (backtick-q) and the pipe arrow ⇝ by `` `p ``.
-
-Below is a video demonstration of simple tasks worked with
-synthesis.  At the top I list each consecutive task; on the left
-the synthesis code is displayed, with the buffer contents modified
-live at the center, and the final output on the right.  At the
-bottom I display some optional global state like directory
-contents.
-
-https://user-images.githubusercontent.com/45828433/126076357-79283c91-1473-4305-b487-3e2b330b2293.mp4
 
 The script was created for my personal use, inspired by previous
 efforts to provide functional templates in the shell, and then
