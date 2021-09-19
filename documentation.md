@@ -1139,18 +1139,13 @@ being according to zsh globbing patterns.
 
 ### `regex_replace string1 string2 : String -> String`
 
-**Variant 1:** `regex_replace '«string1➭:string2»' : String -> String`
-**Variant 2:** `regex '⫽string1⫽string2⫽' : String -> String`
+**Variant:** `regex_replace '«string1➭:string2»' : String -> String`
 
 **Description:** As `replace`, but the rules for replacement are
 according to PCRE, with the exception that matching groups are not
 denoted `\1,\2,...` but `$match[1],$match[2]...`.  The full matched
 string is `$MATCH`.  The function `regex_replace` is sugar over the
 zsh function `regexp-replace`.
-
-The second variant is a new addition that shortens the call and
-uses the more familiar glyph `⫽` for the replacement pattern.  This
-triple of glyphs is invoked via `` `/ ``.
 
 ## Modifications and replacement functions on records
 
