@@ -1859,6 +1859,7 @@ fformats(){ #Component in detect()
 	[[ $params =~ '(^|\s)(N|L|NL|LN)?lastacc (\S+)' ]] && quals+='(#q'${fl[$match[2]]}'a'$match[3]')'
 	[[ $params =~ '(^|\s)(N|L|NL|LN)?lastmod	(\S+)' ]] && quals+='(#q'${fl[$match[2]]}'m'$match[3]')'
 	[[ $params =~ '(^|\s)(N|L|NL|LN)?lastinode (\S+)' ]] && quals+='(#q'${fl[$match[2]]}'c'$match[3]')'
+	[[ $params =~ '(^|\s)(N|L|NL|LN)?lastwrite (\S+)' ]] && quals+='(#q'${fl[$match[2]]}'c'$match[3]')'
 	[[ $params =~ '(^|\s)(N|L|NL|LN)?onlinks' ]] && quals+='(#q'${fl[$match[2]]}'-)'
 	[[ $params =~ '(^|\s)(N|L|NL|LN)?dots' ]] && quals+='(#q'${fl[$match[2]]}'D)'
 	[[ $params =~ '(^|\s)(N|L|NL|LN)?mine' ]] && quals+='(#q'${fl[$match[2]]}'U)'
