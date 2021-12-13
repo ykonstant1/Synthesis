@@ -51,6 +51,7 @@ alias freplace='map Freplace'
 alias regex_freplace='map Regex_freplace'
 alias over='map Over'
 alias actf='map actF'
+alias unbox='map Unbox'
 alias ℜ='regex_replace'
 alias regex='regex_replace'
 # Synthesis main functions
@@ -328,7 +329,7 @@ denull() {
 	__buf__=($__buf__)
 }
 
-unbox() {
+Unbox() {
 	[[ -r $__buf__ ]] ||
 		{ __debug "Unbox failed to read ${(q)__buf__}."; return 1 }
 	__buf__="$mapfile[$__buf__]"
