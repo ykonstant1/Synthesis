@@ -54,6 +54,7 @@ alias actf='map actF'
 alias unbox='map Unbox'
 alias ℜ='regex_replace'
 alias regex='regex_replace'
+alias turn='regex_replace'
 # Synthesis main functions
 
 ## Building blocks for user-defined functions
