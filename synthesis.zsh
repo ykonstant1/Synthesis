@@ -366,6 +366,12 @@ decode_all() {
 	done
 }
 
+byfield() {
+	local field=$1
+	local spl=( "${(@ps:$w_d:)__buf__}" )
+	__buf__="$( print -rn -- "$spl[$field]" | base64 | tr --delete '\n' )"
+}
+
 randomfill() {
 	local entries=${@[1]:-10} chars=${@[2]:-20}
 	repeat $entries do
@@ -530,7 +536,7 @@ del=${(e)__literal__-${@[1]:-$w_d}}
 }
 
 unify() { #To aggregate a partitioned buffer
-	__buf__=( "${(@)__buf__/[^:]:/}" )
+	__buf__=( "${(@)__buf__/[^:]\:/}" )
 }
 
 partialsum() {
@@ -1521,6 +1527,25 @@ partition() {
 	__buf__=( "${(@)__buf_return__}" )
 }
 
+reprun() {
+	local __buf__=( "${(@)__buf__}" )
+	foldparts λ x y ↦ '«printf -- $x»'
+	local __buf_copy__=(${__buf__//*:/})
+	local __exec_string__="$@"
+
+	[[ $# -eq 2 &&
+		! $(alias $1) &&
+		! $(declare -f $1) &&
+		$__literal__ ]] &&
+			__exec_string__=${__literal__//$1/__buf__[1]}
+
+	for entry in "${(@)__buf_copy__}"; do
+		__buf__=( "$entry" )
+		eval "$__exec_string__" || 
+			{__debug "Error in reprun eval."; return 1}
+		done
+}
+
 partmap() {
 	local parts=( ${(ps.:.)@[1]} )
 	shift
@@ -1685,7 +1710,7 @@ foldparts() {
 	local __buf_size__=${#__buf__}
 	local i
 	for ((i=1; i <= $__buf_size__; i++ )); do
-		[[ $__buf__[i] =~ "^(\w+)\:" ]] &&
+		[[ $__buf__[i] =~ "^([^:]+)\:" ]] &&
 			parts+=( "$match[1]" )
 	done
 	parts=( "${(@u)parts}" )
