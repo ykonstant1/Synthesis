@@ -538,7 +538,7 @@ del=${(e)__literal__-${@[1]:-$w_d}}
 unify() { #To aggregate a partitioned buffer
 	local __buf_copy__=()
 	for entry in "${(@)__buf__}"; do
-		[[ $entry =~ '[^\:]+\:(.*)' ]] && __buf_copy__+=( "$match[1]" )
+		[[ $entry =~ '[^\:]+\:([\S\s]*)' ]] && __buf_copy__+=( "$match[1]" )
 	done
 	__buf__=( "${(@)__buf_copy__}" )
 }
