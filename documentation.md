@@ -91,13 +91,8 @@ format.
 To make the best use of this script, you should be familiar with
 zsh shell scripting at a basic level.  This includes basic shell
 syntax, zsh functions, scalars and arrays, the simplest quotation
-rules and how to set options and environment variables.
-
-Synthesis uses a hybrid imperative/functional paradigm based on
-higher order functions such as map and filter being applied to
-user-defined or script-supplied functions, with as little hidden
-state as possible.  The script is aimed at users who have some
-familiarity with this coding style.
+rules and how to set options and environment variables.  Some
+familiarity with map/filter/reduce-based workflows will also help.
 
 ## 1.4. Credits
 
@@ -117,7 +112,7 @@ A note on terminology: by *atomic functions* we mean functions that
 do not pass any of their parameters through an `eval`.  In
 contrast, *higher order functions* pass some of their parameters
 through at least one `eval`.  This is not a hard-and-fast rule, but
-meant to convey the intent behind the two kinds of functions.
+meant to convey the intent behind the dichotomy. 
 
 ## 2.1. Basic structure
 
@@ -147,10 +142,10 @@ environment variable, and many more.
 
 By default, `synth` accepts newline-delimited input and creates
 buffer entries this way.  This can be modified by altering the
-`input_delimiter` environment variable to another string.  This is
+`i_s` (input separator) environment variable to another string.  This is
 especially important when the input is filenames, in which case the
 input delimiter should always be set to the zero byte via
-`input_delimiter=$null`.
+`i_s=$null`.
 
 The synth pipeline usually ends with one of the following terminating
 commands:
@@ -163,8 +158,8 @@ commands:
 
 The first `print`s the buffer contents
 for further processing as a string delimited by the environment
-variable `output_delimiter`.  Again, when filenames or other binary
-data is involved, `output_delimiter` should be set to `null`.  Show
+variable `o_s` (output separator).  Again, when filenames or other binary
+data is involved, `o_s` should be set to `null`.  Show
 also outputs the data, but can take formatting options and is meant
 to display data on the terminal.  "Run" style commands do not
 display the data and rather perform an action, usually
@@ -343,7 +338,7 @@ The last restriction on the literals is that they cannot accept a
 nested synthesis pipeline.  Synthesis splits commands on pipe
 arrows before literals are retrieved for each command, so such
 arrows inside literals will produce a splitting error at the top
-level.
+level.  This restriction may be lifted at a later date.
 
 A large number of builtin atomic functions are provided for various
 tasks.  A brief list follows; for the full details, see section
@@ -353,28 +348,29 @@ tasks.  A brief list follows; for the full details, see section
 
 1. Arithmetic functions `add`, `sub`, `dist`,...
 2. String manipulation functions `replace`,
-	 `regex_replace`, `extract`,...
+	 `turn`, `extract`,...
 3. Buffer populating functions `seql`, `detect`, `enter`,...
 4. Buffer modification functions `append/prepend`, `suffix/prefix`,
 	 `rotate/lshift/transpose/reverse/zip/unzip...`
 5. Sorting functions `qsort/msort`
 6. Array/string conversion `expand/contract/concat/`
 7. Array counting functions `count/fcount/partcount`
-8. Formatting and display functions `show/inspect/encode/decode`
+8. Formatting and display functions
+	 `show/inspect/encode/decode/align`
 9. Environment interaction `save/load/publish`
 10. Boolean query functions
 		`matching/fmatching/omitting/scomp/ncomp...`
 
-### C. Lambda functions
+### C. Lambda 
 
-In the context of synthesis, lambda functions are somewhat subtle,
+In the context of synthesis, lambdas are somewhat subtle,
 since they perform two tasks: they provide anonymous functions to
 be passed to higher order functions, and they transform syntactic
 zsh expressions to synthesis-type functions.  This allows the user
 to inline a simple task without bothering with the `input/ret`
 formalism of atomic synthesis functions.  
 
-The template for lambdas is:
+The template for the lambda function is:
 
 ```
 λ x y z ... ↦ '« syntactic expression »'
@@ -429,11 +425,11 @@ This is in class 1 modulo 5: 11
 This is in class 1 modulo 5: 16
 ```
 
-In general, although lambdas are convenient, I do not encourage
-their use. Atomic operations and queries are better handled wrapped in atomic
+Although lambda is convenient, I do not encourage its use. Atomic
+operations and queries are better handled wrapped in atomic
 functions, and `map/filter/reduce/...` have more concise anonymous
-patterns for when necessary.  For example, the pipeline above in
-actual synthesis code would be written either as:
+patterns for when necessary.  For example, the pipeline above could
+be written either as:
 
 ```
 ⛥ seql 17 ⇝ filter x '⟦ $(( x % 5 )) -eq 1 ⟧' \
@@ -450,10 +446,10 @@ decorate() { lex; x="This is in class 1 modulo 5: $x"; rex }
 ⛥ seql 17 ⇝ filter cong ⇝ map decorate ⇝ show
 ```
 
-Of course the second format is better suited for more complex tasks
+The second format is better suited for more complex tasks
 involving bigger atomic functions.
 
-As a final remark, note that these lambdas are syntactic
+As a final remark, these lambdas are syntactic
 constructs, limited to being passed to synth's higher order
 functions as a parameter or being an item in the pipeline by
 themselves.  They are not true first class objects in any
@@ -461,10 +457,10 @@ functional sense of the word.
 
 ### D. Higher order constructs
 
-This is the most useful class of functions defined by Synthesis.
-These operators take other functions (either user-defined or
-predefined in synth), literals and lambdas, and apply them to the
-buffer contents.  The general template is:
+This class of functions forms the core of Synthesis.  They take
+other functions (either user-defined or predefined in synth),
+literals and lambdas, and apply them to the buffer contents.  The
+general template is:
 
 ```
 higher_order_function [optional alphanumeric parameters] function
@@ -502,16 +498,15 @@ common ones include:
 		n-1 times.
 
 Some of these functions have additional ways to invoke for
-convenience, but all accept the basic format listed above.  For
-example, `map` has a shortcut allowing quick syntactic
-modifications as in the following example:
+convenience.  For example, `map` allows quick
+syntactic modifications as in the following example:
 
 ```
 ⛥ seql 5 ⇝ map x '«x="Item: $x"»' ⇝ ◎
 ```
 
-which is shorter than defining a decorating function or involving a
-full lambda.  For more information, read subsection 2.2. carefully:
+which is shorter than defining a decorating function or invoking
+lambda.  For more information, read subsection 2.2 carefully:
 there exist inconsistencies between some of these shortcuts and the
 lambda function!
 
@@ -562,10 +557,10 @@ multiples of 15 with fizz buzz;
 d) removes partition information with `unify` and returns the
 resulting fizzbuzz.
 
-Many more (and more serious!) examples of these constructs can be
-found in their respective descriptions.
+More of these constructs can be found in their respective
+descriptions.
 
-### E. Record/field interpretation of data and tables
+### E. Record:field interpretation of data and tables
 
 In general, higher order functions in Synthesis assume no
 interpretation of individual entries in the array, and treat them
@@ -574,7 +569,7 @@ However, tabular data and the record/field paradigm underlying, for
 instance, tools like awk, are very useful in a shell context.
 For this reason, synthesis supplies many atomic functions and
 higher order functions that treat individual entries of the array
-as records of `$word_delimiter`-separated fields.
+as records of `$f_s`-separated fields.
 
 In particular, there are builtin functions for:
 
@@ -599,7 +594,7 @@ The general template for record-interpreted atomic or higher order functions is:
 higher_order_function [field or fields to affect] function
 #or
 atomic_function [field or fields to affect] [optional parameters]
-[optional word delimiter]
+[optional field separator]
 ```
 
 Here we will restrict ourselves to an example of these
@@ -623,7 +618,7 @@ for simplicity) and the average GPA associated to it.  The
 following code does the trick:
 
 ```
-word_delimiter=$tb
+f_s=$tb
 
 local popular=$( < records.txt ➢ lshift ⇝ keep 2 ⇝ suffix :1 \
 	⇝ foldparts add ⇝ lshift -1 ⇝ ◎ )
@@ -662,9 +657,9 @@ array of Floats, etc.  Similarly for a power of a type, e.g.
 Bool^5.  An asterisk `*` indicates any primitive type.  An array is
 not a primitive type.  String is essentially the same as *.  
 
-Our type annotations are not meant to be strict; they exist to
-convey intent, but can be reasonably broken in appropriate
-contexts.  Synthesis itself does not perform any type checking.
+The type annotations are not meant to be strict; they exist to
+convey intent, but can be broken in appropriate contexts.
+Synthesis itself does not perform any type checking.
 
 Functions taking parameters are decorated in their definition by
 a description of parameters.  For example:
@@ -764,12 +759,10 @@ function) respectively.
 
 ## Buffer populating functions
 
-###
-```
-detect ['«glob»'] [inclusion criteria] 
+### ``` detect ['«glob»'] [inclusion criteria] 
 	N[exclusion criteria] [formatting options] 
-	: Void -> Array( Byte_not_null )
-```
+	: Void -> Array( Byte_not_null ) ```
+
 **Description:** Populates the array with filenames satisfying the
 criteria set by the parameters.  The glob accepts zsh globbing
 syntax.  
@@ -791,7 +784,7 @@ The criteria options (grouped by concept) are:
 	 designating device holding the file, size, number of links, last access,
 	 modification or inode change; the accepted criteria format is
 	 the same as with zsh native globbing options.
-6. dots : include dotfiles in the directory scan
+6. dot : include dotfiles in the directory scan
 7. mine / mygroup / owner [name] / group [name] : restrict to
 	 current user/group files, or designated owner or group
 8. [d]sort:name/size/links/lastacc/lastmod/lastinode : ascending or
@@ -817,7 +810,7 @@ The formatting options are:
 
 **Example:**
 ```
-⛥ detect dots regular mygroup read sort size Nmine path ⇝ ◎
+⛥ detect dot regular mygroup read sort size Nmine path ⇝ ◎
 ```
 returns size-sorted full paths of all regular files (including
 dotfiles ) that belong to the user's group but not the user and can
@@ -971,7 +964,7 @@ String -> String`
 
 **Description:** Extracts the contents of `matching_string`
 according to PCRE format, returning the string of matches in words
-separated by `$word_delimiter`, or returning a custom replacement
+separated by `$f_s`, or returning a custom replacement
 string that accepts entries of `$match`.  If there is no match, it
 returns null or optionally the string `fail_output`.  Currently,
 the string `fail_output` can only be a simple ASCII string without
@@ -994,7 +987,7 @@ Digits: 1,2
 ### `expand [separator] : String -> Array(String)`
 
 **Description:** Splits the input string according to separator (by
-default `$word_delimiter`) and creates an array of the resulting
+default `$f_s`) and creates an array of the resulting
 words.
 
 **Example:**
@@ -1008,7 +1001,7 @@ World
 
 **Description:** Contracts all the entries in the array into a
 string separated by [separator], which is by default
-`$word_delimiter`.
+`$f_s`.
 
 **Example:**
 ```
@@ -1089,7 +1082,7 @@ Example:
 
 **Description:** Creates an array whose n-th entry is the
 concatenation of entries 1 through n of the original array
-separated by `separator`, by default `$word_delimiter`.
+separated by `separator`, by default `$f_s`.
 
 **Example:**
 ```
@@ -1141,11 +1134,17 @@ being according to zsh globbing patterns.
 
 **Variant:** `regex_replace '«string1➭:string2»' : String -> String`
 
+**Variant:** `regex_replace '⫽string1⫽string2⫽' : String -> String`
+
+**Variant:** `turn '⫽string1⫽string2⫽' : String -> String`
+
 **Description:** As `replace`, but the rules for replacement are
 according to PCRE, with the exception that matching groups are not
 denoted `\1,\2,...` but `$match[1],$match[2]...`.  The full matched
 string is `$MATCH`.  The function `regex_replace` is sugar over the
-zsh function `regexp-replace`.
+zsh function `regexp-replace`.  A shorter alias for this function
+is `turn` (as in 'turn X into Y').  The special notation `⫽⫽⫽` is
+provided, invoked via ```/`, to more closely resemble regex syntax.
 
 ## Modifications and replacement functions on records
 
@@ -1178,7 +1177,7 @@ Usually used with `map`, so the alias `over='map Over'` is provided.
 ⛥ enter '«Hello World»' ⇝ swap 1 2  ⇝ ◎
 World Hello
 
-word_delimiter=$tb
+f_s=$tb
 ⛥ enter $'«Hello\tWorld»' ⇝ swap 1 2  ⇝ ◎
 World	Hello
 ```
@@ -1651,8 +1650,8 @@ of an input stream resulting in some output or other action on the
 data.  In general, besides the input stream and the command line,
 the output of `synth` depends on:
 
-1. Environment variables like `$word_delimiter`, `$input_delimiter`
-	 and `$output_delimiter`
+1. Environment variables like `$f_s`, `$i_s`
+	 and `$o_s`
 2. the definitions of user-created functions
 3. contents of variables referenced in the command line
 4. OS specific handling of files and memory (especially when the
@@ -1696,13 +1695,13 @@ fizzbuzz() {
 ### A fizzbuzz leveraging table manipulations
 
 This is a demo of table manipulation capabilities of synthesis.  It
-is not a performant or even sane implementation of fizzbuzz!
+is not a performant implementation of fizzbuzz.
 
 Usage: fizz [number of elements]
 ```
 fizz() {
 local pad=$(( $1 + 15 - ($1 % 15) ))
-local word_delimiter=:
+local f_s=:
 
 ⛥ seql $pad ⇝ segment $(( $pad/3 )) ⇝ transpose ⇝ excise -1\
 					  ⇝ suffix ':fizz' ⇝ expand \
@@ -1745,7 +1744,7 @@ maxnest() {
 ### Returning the longest ASCII words in a list
 ```
 longest_words() {
-	local word_delimiter=':'
+	local f_s=':'
 
 	< $1 ➢  partition x '«x=${#x}»' \
 				⇝ fsort 1 num \
