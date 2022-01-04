@@ -39,19 +39,19 @@ works in progress.
 ## Illustrated Use
 
 ### Hello World
-![Hello World](hello_world_s.jpg)
+![Hello World](hello_world.jpg)
 
 ### Simple file generation
-![File generation](file_gen_s.jpg)
+![File generation](file_gen.jpg)
 
 ### User-defined functions
-![User defined functions](function_s.jpg)
+![User defined functions](functions.jpg)
 
 ### File actions
-![File actions](file_action_s.jpg)
+![File actions](file_action.jpg)
 
 ### Buffer structure
-![Buffer structure](buffer_struct_s.jpg)
+![Buffer structure](buffer_struct.jpg)
 
 ## Installation
 
