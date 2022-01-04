@@ -20,7 +20,7 @@ The following code creates/updates backup files of text files
 belonging to the user that were accessed within the last two days:
 ```
 ⛥ detect '«./*.txt»' mine lastacc -2 \
-			⇝ map run x '«cp -- $x $x.bak»'
+			⇝ map x '«cp -- $x $x.bak»'
 ```
 The unicode symbols have two-keystroke keymaps for ease of input,
 as well as suggested non-unicode replacements.  For instance, ⛥ is
