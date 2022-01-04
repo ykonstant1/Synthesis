@@ -1,9 +1,9 @@
 ## About synthesis
 
-Synthesis is a zsh script for emulating a coding with higher order
-functions, lambdas and functional composition in the shell.
+Synthesis is a zsh script for emulating a coding style with higher
+order functions, lambdas and composition in the shell.
 
-For example, an elementary fizzbuzz in synthesis would look like
+An elementary fizzbuzz in synthesis would look like
 this:
 ```
 fizzes=77 # however many iterations we want
