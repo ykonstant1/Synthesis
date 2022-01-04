@@ -1,8 +1,7 @@
 ## About synthesis
 
-Synthesis is a zsh script for emulating a functional-pattern coding
-style in the shell, with higher order functions, lambdas and
-functional composition (Greek: synthesis) at the forefront.
+Synthesis is a zsh script for emulating a coding with higher order
+functions, lambdas and functional composition in the shell.
 
 For example, an elementary fizzbuzz in synthesis would look like
 this:
