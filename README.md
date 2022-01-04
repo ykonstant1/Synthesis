@@ -45,7 +45,7 @@ works in progress.
 ![File generation](file_gen_s.jpg)
 
 ### User-defined functions
-![User defined functions](functions.jpg)
+![User defined functions](function_s.jpg)
 
 ### File actions
 ![File actions](file_action_s.jpg)
