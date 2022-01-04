@@ -3,8 +3,7 @@
 Synthesis is a zsh script for emulating a coding style with higher
 order functions, lambdas and composition in the shell.
 
-An elementary fizzbuzz in synthesis would look like
-this:
+A fizzbuzz in synthesis would look like this:
 ```
 fizzes=77 # however many iterations we want
 
@@ -23,13 +22,13 @@ belonging to the user that were accessed within the last two days:
 ```
 The unicode symbols have two-keystroke keymaps for ease of input,
 as well as suggested non-unicode replacements.  For instance, ⛥ is
-inputted by `` `q `` (backtick-q) and the pipe arrow ⇝ by `` `p ``.
+inserted with `` `q `` (backtick-q) and the pipe arrow ⇝ with `` `p ``.
 
 The script was created for my personal use, inspired by previous
 efforts to provide functional templates in the shell, and then
-expanded into a more generic tool over the course of the last
-couple of months.  It is an amateur project so please be very
-careful if you decide to use it.
+expanded into a more generic tool over the course of the last few
+months.  It is an amateur project so please be very careful if you
+decide to use it.
 
 For more information, credits, caveats etc, check the documentation
 in `documentation.md`.  Both the script and the documentation are

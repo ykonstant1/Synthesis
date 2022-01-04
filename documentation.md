@@ -1144,7 +1144,7 @@ denoted `\1,\2,...` but `$match[1],$match[2]...`.  The full matched
 string is `$MATCH`.  The function `regex_replace` is sugar over the
 zsh function `regexp-replace`.  A shorter alias for this function
 is `turn` (as in 'turn X into Y').  The special notation `⫽⫽⫽` is
-provided, invoked via ```/`, to more closely resemble regex syntax.
+provided, invoked via `` `/ ``, to more closely resemble regex syntax.
 
 ## Modifications and replacement functions on records
 
