@@ -36,6 +36,23 @@ For more information, credits, caveats etc, check the documentation
 in `documentation.md`.  Both the script and the documentation are
 works in progress.
 
+## Illustrated Use
+
+### Hello World
+![Hello World](hello_world_s.jpg)
+
+### Simple file generation
+![File generation](file_gen_s.jpg)
+
+### User-defined functions
+![User defined functions](functions.jpg)
+
+### File actions
+![File actions](file_action_s.jpg)
+
+### Buffer structure
+![Buffer structure](buffer_struct_s.jpg)
+
 ## Installation
 
 Clone this repository locally and source the file `synthesis.zsh`.  Note
