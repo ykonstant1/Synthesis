@@ -37,19 +37,28 @@ works in progress.
 ## Illustrated Use
 
 ### Hello World
-![Hello World](hello_world.jpg)
+![Hello World](a_hello_world.jpg)
 
 ### Simple file generation
-![File generation](file_gen.jpg)
+![File generation](a_file_gen.jpg)
 
 ### User-defined functions
-![User defined functions](functions.jpg)
+![User defined functions](a_functions.jpg)
 
 ### File actions
-![File actions](file_action.jpg)
+![File actions](a_file_action.jpg)
 
 ### Buffer structure
-![Buffer structure](buffer_struct.jpg)
+![Buffer structure](a_buffer_struct.jpg)
+
+### Longest words in a list
+![Buffer structure](a_longest_words.jpg)
+
+### Average GPA of popular major
+![Buffer structure](a_averages.jpg)
+
+### Formatting and display
+![Buffer structure](a_format.jpg)
 
 ## Installation
 
