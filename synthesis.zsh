@@ -35,12 +35,11 @@ export f_s=$tb
 alias lex='local x; x=("${(@)__buf__}")'
 alias rex='__buf__=("${(@)x}")'
 
-alias ⛥='<<(dot) ➢ '
+alias ⛥='<<(printf $i_s) ➢ '
 alias ◎='out'
 alias ➢='synth'
 alias reduce='foldl'
 alias tabulate='segment'
-alias •='dot'
 alias λ='lambda'
 
 alias swap='map Swap'
@@ -48,6 +47,7 @@ alias keep='map Keep'
 alias excise='map Excise'
 alias permute='map Permute'
 alias freplace='map Freplace'
+alias separate='map Separate'
 alias regex_freplace='map Regex_freplace'
 alias over='map Over'
 alias actf='map actF'
@@ -255,6 +255,11 @@ fcount() { #Assumes rectangular table; record interpretation
 }
 
 partcount() { #Does not see nested partitions
+	local ag=("${(@M)__buf__:#$1:*}")
+	__buf__="${#ag}"
+}
+
+partscount() { #Does not see nested partitions
 	local ag=("${(@M)__buf__:#$1:*}")
 	__buf__="${#ag}"
 }
@@ -467,6 +472,46 @@ expand() {
 contract() {
 	local sep="${${(e)__literal__-$1}:-$f_s}"
 	__buf__=( "${(pj:$sep:)__buf__[@]}" )
+}
+
+Separate() {
+	local typ=$1
+	shift
+	local j
+	local __bufstr__=""
+	local __buf_copy__="${__buf__[@]}"
+	case $typ in
+		bysize)
+			local sizes=($@) segments=(0)
+			local nfields=$#sizes
+			for j in $sizes; do
+				segments+=( $(( segments[-1] + j )) )
+			done
+			for ((j=2; j<=$#segments; j++)) do
+				__bufstr__+=$f_s"$__buf_copy__[$segments[j-1]+1,$segments[j]]"
+			done
+			__bufstr__="${__bufstr__#$f_s}"
+			__buf__=( "$__bufstr__" )
+		;;
+		byrange)
+			local ranges=($@)
+			for j in $ranges; do
+				__debug "range: $j"
+				eval '__bufstr__+=$f_s"$__buf_copy__['$j']"'
+			done
+			__bufstr__="${__bufstr__#$f_s}"
+			__buf__=( "$__bufstr__" )
+		;;
+		bysep)
+			[[ ! $__literal__ ]] &&
+				{ __debug "Separators must be put in literal brackets."; return 1 }
+			local IFS=$__literal__
+			__buf__=( $=__buf_copy__ ); __buf__=( $__buf__ )
+		;;
+		bystr)
+			local sep=${${__literal__-$@}:-$f_s}
+			__buf__=( "${(@ps:$sep:)__buf_copy__}" )
+	esac
 }
 
 dissolve() {
@@ -1857,7 +1902,7 @@ synth() {
 
 ## Component functions
 
-dot() { printf $i_s } # For piping empty state to synth
+seedis() { printf $i_s } # For piping empty state to synth; deprecated.
 
 best_fit() { # Component in segment
 	local X=$1
@@ -2042,7 +2087,6 @@ bindkey -s "\`w" " ➢ "
 bindkey -s "\`\\" " | ➢ " 
 bindkey -s "\`o" "◎ " 
 bindkey -s "\`x" "•\|➢ "
-bindkey -s "\`dot" •
 bindkey -s "\`l" "λ "
 bindkey -s "\`m" " ↦ "
 bindkey -s "\`1" "'«»'ODOD"

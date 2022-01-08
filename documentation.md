@@ -1144,7 +1144,7 @@ denoted `\1,\2,...` but `$match[1],$match[2]...`.  The full matched
 string is `$MATCH`.  The function `regex_replace` is sugar over the
 zsh function `regexp-replace`.  A shorter alias for this function
 is `turn` (as in 'turn X into Y').  The special notation `⫽⫽⫽` is
-provided, invoked via `` `/ ``, to more closely resemble regex syntax.
+provided, invoked via ```/`, to more closely resemble regex syntax.
 
 ## Modifications and replacement functions on records
 
@@ -1661,8 +1661,8 @@ These need to be taken into consideration when executing a synth
 command line.
 
 When filtering external data streams, I alias the `synth` function
-by `➢`.  The command `dot`, aliased to `•`, simply returns an empty
-state for use in `• | ➢`, aliased to `⛥`.
+by `➢`.  When I need `synth` to generate its own data, I invoke it
+with `<<(printf $i_s) synth` which I have aliased to `⛥`.
 
 ## 2.3. Worked examples
 
